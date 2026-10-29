@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J.A.R.V.I.S.</title>
+<style>
+:root{--c:#2de2ff;--c2:#0a8fb0;--bg:#02080d;--panel:rgba(10,40,55,.45);--line:rgba(45,226,255,.28);--txt:#cfefff;--warn:#ffb347}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:radial-gradient(ellipse at 50% 30%,#06212d 0%,var(--bg) 70%);color:var(--txt);font-family:"Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(45,226,255,.025) 0 1px,transparent 1px 3px);pointer-events:none}
+.app{display:grid;grid-template-columns:270px 1fr 270px;grid-template-rows:auto 1fr;gap:12px;height:100%;padding:12px}
+header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);background:var(--panel);padding:8px 16px;border-radius:10px}
+header h1{font-weight:300;letter-spacing:.5em;font-size:1.1rem;color:var(--c);text-shadow:0 0 12px var(--c)}
+.hdr-r{display:flex;gap:10px;align-items:center;font-size:.8rem}
+.dot{width:9px;height:9px;border-radius:50%;background:#f55;box-shadow:0 0 8px #f55;display:inline-block;margin-right:6px}
+.dot.ok{background:#3f6;box-shadow:0 0 8px #3f6}
+select,input,button{font:inherit;color:var(--txt);background:rgba(0,20,30,.7);border:1px solid var(--line);border-radius:8px;padding:6px 10px;outline:none}
+select:focus,input:focus{border-color:var(--c);box-shadow:0 0 8px var(--c2)}
+button{cursor:pointer;transition:.15s}
+button:hover{background:rgba(45,226,255,.15);border-color:var(--c)}
+button.on{background:rgba(45,226,255,.25);border-color:var(--c);box-shadow:0 0 10px var(--c2)}
+.side{display:flex;flex-direction:column;gap:12px;overflow:auto;min-height:0}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px}
+.card h3{font-weight:400;font-size:.7rem;letter-spacing:.25em;color:var(--c);margin-bottom:8px;text-transform:uppercase}
+#clock{font-size:2rem;font-weight:200;letter-spacing:.08em;text-shadow:0 0 10px var(--c2)}
+#date{font-size:.8rem;opacity:.7}
+.row{display:flex;justify-content:space-between;font-size:.85rem;padding:2px 0}
+.list{font-size:.85rem;display:flex;flex-direction:column;gap:4px;max-height:140px;overflow:auto}
+.list div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding-bottom:3px}
+.empty{opacity:.45;font-style:italic}
+main{display:flex;flex-direction:column;min-height:0;gap:10px}
+.core{display:flex;justify-content:center;align-items:center;height:190px;flex:none}
+.orb{position:relative;width:170px;height:170px}
+.orb i{position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:var(--c);border-bottom-color:var(--c);animation:spin 6s linear infinite;box-shadow:0 0 18px rgba(45,226,255,.3)}
+.orb i:nth-child(2){inset:16px;animation-duration:4s;animation-direction:reverse;border-color:transparent var(--c) transparent var(--c)}
+.orb i:nth-child(3){inset:34px;animation-duration:9s;border-style:dashed;border-color:var(--c2)}
+.orb b{position:absolute;inset:58px;border-radius:50%;background:radial-gradient(circle,#fff 0%,var(--c) 35%,rgba(45,226,255,.1) 75%);box-shadow:0 0 40px var(--c),0 0 90px var(--c2);animation:pulse 2.5s ease-in-out infinite}
+.orb[data-s=listening]{--c:#46ff9a;--c2:#1a9d5c}
+.orb[data-s=thinking]{--c:#ffb347;--c2:#a86a13}
+.orb[data-s=thinking] i{animation-duration:1.2s}
+.orb[data-s=speaking] b{animation-duration:.5s}
+.orb[data-s=speaking]{--c:#b58cff;--c2:#6b3fd1}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{transform:scale(1.18);opacity:.8}}
+#state{text-align:center;font-size:.7rem;letter-spacing:.4em;color:var(--c);text-transform:uppercase;margin-top:-6px}
+#log{flex:1;min-height:0;overflow:auto;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:82%;padding:8px 12px;border-radius:10px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word;font-size:.95rem}
+.msg.u{align-self:flex-end;background:rgba(45,226,255,.15);border:1px solid var(--line)}
+.msg.j{align-self:flex-start;background:rgba(0,0,0,.35);border-left:3px solid var(--c)}
+.msg.s{align-self:center;font-size:.78rem;opacity:.65;background:none;font-style:italic}
+.bar{display:flex;gap:8px;flex:none}
+.bar input{flex:1;padding:10px 14px}
+#mic{width:46px;font-size:1.1rem}
+dialog{margin:auto;background:#06161f;color:var(--txt);border:1px solid var(--c);border-radius:12px;padding:18px;width:min(420px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog label{display:block;font-size:.8rem;margin:10px 0 4px;opacity:.8}
+dialog input,dialog select{width:100%}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.85rem}
+.chk input{width:auto}
+@media(max-width:900px){body{overflow:auto}.app{grid-template-columns:1fr;height:auto;min-height:100%}.side{order:3}main{height:78vh}.hdr-r{flex-wrap:wrap;justify-content:flex-end}header h1{letter-spacing:.25em;font-size:.95rem}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>J.A.R.V.I.S.</h1>
+    <div class="hdr-r">
+      <span><span class="dot" id="dot"></span><span id="llmStatus">checking…</span></span>
+      <select id="model" title="Model"></select>
+      <button id="btnSet">⚙</button>
+    </div>
+  </header>
+
+  <aside class="side">
+    <div class="card"><h3>Local time</h3><div id="clock">--:--:--</div><div id="date"></div></div>
+    <div class="card"><h3>Weather</h3><div id="wx" class="empty">Locating…</div></div>
+    <div class="card"><h3>System</h3><div id="sys"></div></div>
+  </aside>
+
+  <main>
+    <div class="core"><div class="orb" id="orb" data-s="idle"><i></i><i></i><i></i><b></b></div></div>
+    <div id="state">standing by</div>
+    <div id="log"></div>
+    <div class="bar">
+      <button id="mic" title="Microphone">🎙</button>
+      <input id="in" placeholder="Type a command, or say “Jarvis …”" autocomplete="off">
+      <button id="send">Send</button>
+    </div>
+  </main>
+
+  <aside class="side">
+    <div class="card"><h3>Timers</h3><div id="timers" class="list"><span class="empty">No active timers</span></div></div>
+    <div class="card"><h3>Notes</h3><div id="notes" class="list"></div></div>
+    <div class="card"><h3>Try saying</h3><div style="font-size:.8rem;line-height:1.7;opacity:.8">
+      “What time is it?”<br>“Weather in Mumbai”<br>“Timer for 5 minutes”<br>“Remind me in 10 minutes to call mom”<br>“Calculate 18 percent of 2450”<br>“Note that the wifi password is 1234”<br>“Who is Nikola Tesla?”<br>“Open YouTube” · “Search for pizza near me”<br>“System status”</div></div>
+  </aside>
+</div>
+
+<dialog id="dlg">
+  <h3 style="color:var(--c);font-weight:400;letter-spacing:.2em">SETTINGS</h3>
+  <label>Your name / how I address you</label><input id="sName">
+  <label>AI brain</label>
+  <select id="sBrain"><option value="webllm">In-browser model (phone, no server)</option><option value="cloud">Free cloud API key (Groq / Gemini)</option><option value="ollama">Ollama on another device</option></select>
+  <div id="bOllama"><label>Ollama URL</label><input id="sUrl"></div>
+  <div id="bCloud"><label>API base URL</label><input id="sCUrl" placeholder="https://api.groq.com/openai/v1"><label>API key</label><input id="sCKey" type="password" placeholder="paste key"><label>Model</label><input id="sCModel" placeholder="llama-3.1-8b-instant"></div>
+  <div id="bWeb"><label>On-device model (downloads once, 0.5-1 GB)</label><select id="sWModel"><option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen 2.5 0.5B (smallest, fastest)</option><option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B (smarter)</option></select></div>
+  <label>Voice</label><select id="sVoice"></select>
+  <label>Wake word</label><input id="sWake">
+  <div class="chk"><input type="checkbox" id="sSpeak"><span>Speak replies aloud</span></div>
+  <div class="chk"><input type="checkbox" id="sWakeOn"><span>Require wake word for voice commands</span></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button id="sClose">Cancel</button><button id="sSave" class="on">Save</button></div>
+</dialog>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('jarvis_'+k); return v===null? d : JSON.parse(v); }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem('jarvis_'+k, JSON.stringify(v)); }catch{} }
+};
+const cfg = {
+  name: store.get('name','sir'),
+  url: store.get('url','http://localhost:11434'),
+  voice: store.get('voice',''),
+  wake: store.get('wake','jarvis'),
+  speak: store.get('speak',true),
+  wakeOn: store.get('wakeOn',true),
+  model: store.get('model',''),
+  brain: store.get('brain','webllm'),
+  cUrl: store.get('cUrl','https://api.groq.com/openai/v1'),
+  cKey: store.get('cKey',''),
+  cModel: store.get('cModel','llama-3.1-8b-instant'),
+  wModel: store.get('wModel','Qwen2.5-0.5B-Instruct-q4f16_1-MLC')
+};
+if(store.get('wakeOn',null)===null && matchMedia('(pointer:coarse)').matches) cfg.wakeOn=false;
+const saveCfg = () => Object.keys(cfg).forEach(k => store.set(k, cfg[k]));
+
+/* ---------- UI helpers ---------- */
+const log = $('#log');
+function addMsg(text, cls){
+  const d = document.createElement('div'); d.className = 'msg '+cls; d.textContent = text;
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+function setState(s, label){
+  $('#orb').dataset.s = s;
+  $('#state').textContent = label || ({idle:'standing by',listening:'listening',thinking:'processing',speaking:'speaking'}[s]);
+}
+
+/* ---------- Speech output ---------- */
+let voices = [], pendingSpeech = 0;
+function loadVoices(){
+  voices = speechSynthesis.getVoices();
+  const sel = $('#sVoice'); sel.innerHTML = '<option value="">Auto (British male if available)</option>';
+  voices.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = v.name+' ('+v.lang+')'; sel.appendChild(o); });
+  sel.value = cfg.voice;
+}
+if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged = loadVoices; loadVoices(); }
+function pickVoice(){
+  if(cfg.voice){ const v = voices.find(v => v.name===cfg.voice); if(v) return v; }
+  return voices.find(v => /en-GB/i.test(v.lang) && /male|daniel|arthur|george|ryan/i.test(v.name))
+      || voices.find(v => /en-GB/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang)) || null;
+}
+function speak(text){
+  if(!cfg.speak || !('speechSynthesis' in window)) return;
+  text = text.replace(/[*_`#>]/g,'').replace(/https?:\/\/\S+/g,'link').trim();
+  if(!text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  const v = pickVoice(); if(v){ u.voice = v; u.lang = v.lang; }
+  u.rate = 1.03; u.pitch = .92;
+  u.onstart = () => { pauseRec(); setState('speaking'); };
+  const done = () => { pendingSpeech = Math.max(0, pendingSpeech-1); if(pendingSpeech===0){ setState('idle'); resumeRec(); } };
+  u.onend = done; u.onerror = done;
+  pendingSpeech++; speechSynthesis.speak(u);
+}
+function stopSpeaking(){ if('speechSynthesis' in window){ speechSynthesis.cancel(); pendingSpeech = 0; } }
+function reply(text){ addMsg(text,'j'); speak(text); }
+
+/* ---------- Speech input ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, micOn = false, recPaused = false, awakeUntil = 0, busy = false;
+function updateMic(){ $('#mic').classList.toggle('on', micOn); $('#mic').title = micOn ? 'Microphone on (click to turn off)' : 'Microphone off'; }
+function startRec(){
+  if(!SR || !micOn || recPaused || rec) return;
+  rec = new SR(); rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = false;
+  rec.onstart = () => { if(!pendingSpeech && !busy) setState('listening'); };
+  rec.onresult = e => {
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) handleVoice(e.results[i][0].transcript.trim());
+    }
+  };
+  rec.onerror = e => {
+    if(e.error==='not-allowed' || e.error==='service-not-allowed'){ micOn = false; updateMic(); addMsg('Microphone permission was denied. Allow it in the browser address bar and try again.','s'); }
+  };
+  rec.onend = () => { rec = null; if(micOn && !recPaused) setTimeout(startRec, 250); else if(!busy && !pendingSpeech) setState('idle'); };
+  try{ rec.start(); }catch{ rec = null; }
+}
+function pauseRec(){ recPaused = true; if(rec){ const r = rec; rec = null; try{ r.abort(); }catch{} } }
+function resumeRec(){ recPaused = false; if(micOn) setTimeout(startRec, 300); }
+function toggleMic(){
+  if(!SR){ addMsg('Voice input needs Chrome, Edge or Safari. Typing still works.','s'); return; }
+  micOn = !micOn; updateMic();
+  if(micOn){ startRec(); addMsg(cfg.wakeOn ? `Listening. Say “${cfg.wake}” followed by a command.` : 'Listening.','s'); }
+  else { pauseRec(); recPaused = false; setState('idle'); }
+}
+function handleVoice(t){
+  if(!t) return;
+  const low = t.toLowerCase();
+  if(cfg.wakeOn){
+    const wake = cfg.wake.toLowerCase();
+    const alts = [wake, 'jarvis','jarvas','service','travis','jarvice'].filter((v,i,a)=>a.indexOf(v)===i);
+    let idx = -1, len = 0;
+    for(const w of alts){ const i = low.indexOf(w); if(i>=0){ idx = i; len = w.length; break; } }
+    if(idx>=0){
+      const rest = t.slice(idx+len).replace(/^[\s,.:;!-]+/,'');
+      awakeUntil = Date.now()+10000;
+      if(!rest){ reply(`Yes, ${cfg.name}?`); return; }
+      process(rest, true);
+    } else if(Date.now() < awakeUntil){
+      process(t, true);
+    }
+  } else process(t, true);
+}
+
+/* ---------- Skills ---------- */
+const WORDNUM = {a:1,an:1,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,fifteen:15,twenty:20,thirty:30,forty:40,sixty:60,half:.5};
+const num = s => { s = s.toLowerCase(); return WORDNUM[s] ?? parseFloat(s); };
+const UNIT_MS = u => /^h/.test(u) ? 3600e3 : /^m/.test(u) ? 60e3 : 1e3;
+const fmtDur = ms => { let s = Math.round(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60); s%=60; return (h?h+'h ':'')+(h||m?m+'m ':'')+s+'s'; };
+
+let timers = [];
+function beep(){
+  try{ const a = new (window.AudioContext||window.webkitAudioContext)(); [0,.25,.5].forEach(t=>{ const o=a.createOscillator(),g=a.createGain(); o.frequency.value=880; g.gain.value=.15; o.connect(g); g.connect(a.destination); o.start(a.currentTime+t); o.stop(a.currentTime+t+.15); }); }catch{}
+}
+function addTimer(ms, label){
+  const t = { id: Date.now()+Math.random(), end: Date.now()+ms, label };
+  t.h = setTimeout(() => {
+    timers = timers.filter(x => x!==t); renderTimers(); beep();
+    reply(label ? `${cfg.name}, your reminder: ${label}.` : `${cfg.name}, your timer is up.`);
+    if(Notification && Notification.permission==='granted') new Notification('JARVIS', {body: label || 'Timer finished'});
+  }, ms);
+  timers.push(t); renderTimers();
+}
+function renderTimers(){
+  const el = $('#timers');
+  if(!timers.length){ el.innerHTML = '<span class="empty">No active timers</span>'; return; }
+  el.innerHTML = '';
+  timers.forEach(t => {
+    const d = document.createElement('div');
+    const l = document.createElement('span'); l.textContent = t.label || 'Timer';
+    const r = document.createElement('span'); r.textContent = fmtDur(Math.max(0,t.end-Date.now())); r.dataset.end = t.end;
+    d.append(l,r); el.appendChild(d);
+  });
+}
+
+let notes = store.get('notes', []);
+function renderNotes(){
+  const el = $('#notes'); el.innerHTML = '';
+  if(!notes.length){ el.innerHTML = '<span class="empty">No notes</span>'; return; }
+  notes.forEach((n,i) => { const d = document.createElement('div'); const s = document.createElement('span'); s.textContent = n; const x = document.createElement('button'); x.textContent='×'; x.style.padding='0 7px'; x.onclick = () => { notes.splice(i,1); store.set('notes',notes); renderNotes(); }; d.append(s,x); el.appendChild(d); });
+}
+
+const SITES = {youtube:'https://www.youtube.com',google:'https://www.google.com',gmail:'https://mail.google.com',github:'https://github.com',maps:'https://maps.google.com',twitter:'https://x.com',x:'https://x.com',reddit:'https://www.reddit.com',netflix:'https://www.netflix.com',spotify:'https://open.spotify.com',wikipedia:'https://www.wikipedia.org',whatsapp:'https://web.whatsapp.com',linkedin:'https://www.linkedin.com',amazon:'https://www.amazon.com',chatgpt:'https://chatgpt.com',claude:'https://claude.ai',news:'https://news.google.com',calendar:'https://calendar.google.com',drive:'https://drive.google.com'};
+function openUrl(u){ const w = window.open(u,'_blank','noopener'); return !!w; }
+
+const WX = {0:'clear sky',1:'mainly clear',2:'partly cloudy',3:'overcast',45:'foggy',48:'foggy',51:'light drizzle',53:'drizzle',55:'heavy drizzle',61:'light rain',63:'rain',65:'heavy rain',71:'light snow',73:'snow',75:'heavy snow',80:'rain showers',81:'rain showers',82:'violent showers',95:'thunderstorms',96:'thunderstorms with hail',99:'thunderstorms with hail'};
+let here = store.get('here', null);
+async function getHere(){
+  if(here) return here;
+  const pos = await new Promise((res,rej)=>navigator.geolocation ? navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000}) : rej());
+  here = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: 'your location' }; store.set('here', here); return here;
+}
+async function fetchWeather(place){
+  let loc;
+  if(place){
+    const g = await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(place))).json();
+    if(!g.results || !g.results.length) throw new Error('Could not find a place called '+place);
+    const r = g.results[0]; loc = { lat:r.latitude, lon:r.longitude, name: r.name+(r.country?', '+r.country:'') };
+  } else loc = await getHere();
+  const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`)).json();
+  const c = w.current, d = w.daily;
+  return { loc, text: `${Math.round(c.temperature_2m)}°C, ${WX[c.weather_code]||'unsettled'}`, feels: Math.round(c.apparent_temperature), hum: c.relative_humidity_2m, wind: Math.round(c.wind_speed_10m), hi: Math.round(d.temperature_2m_max[0]), lo: Math.round(d.temperature_2m_min[0]), rain: d.precipitation_probability_max[0] };
+}
+async function wxWidget(){
+  try{
+    const w = await fetchWeather();
+    $('#wx').className = ''; $('#wx').innerHTML = '';
+    [[w.loc.name==='your location'?'Here':w.loc.name, w.text],['Feels like', w.feels+'°C'],['High / Low', w.hi+'° / '+w.lo+'°'],['Rain chance', (w.rain??0)+'%'],['Humidity', w.hum+'%'],['Wind', w.wind+' km/h']].forEach(([a,b])=>{ const r = document.createElement('div'); r.className='row'; const s1=document.createElement('span'); s1.textContent=a; const s2=document.createElement('span'); s2.textContent=b; r.append(s1,s2); $('#wx').appendChild(r); });
+  }catch{ $('#wx').className='empty'; $('#wx').textContent = 'Say “weather in <city>”'; }
+}
+
+async function wiki(q){
+  const s = await (await fetch('https://en.wikipedia.org/w/api.php?action=opensearch&limit=1&format=json&origin=*&search='+encodeURIComponent(q))).json();
+  if(!s[1] || !s[1].length) return `I found nothing on Wikipedia for ${q}, ${cfg.name}.`;
+  const p = await (await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(s[1][0]))).json();
+  const sentences = (p.extract||'').match(/[^.!?]+[.!?]+(\s|$)/g) || [p.extract||''];
+  return sentences.slice(0,3).join(' ').trim() || `I found ${s[1][0]} but no summary.`;
+}
+
+function calc(expr){
+  let e = expr.toLowerCase()
+    .replace(/(\d+(?:\.\d+)?)\s*(?:percent|%)\s*of\s*(\d+(?:\.\d+)?)/g,'($1/100*$2)')
+    .replace(/\bplus\b/g,'+').replace(/\bminus\b/g,'-').replace(/\b(times|multiplied by|x)\b/g,'*')
+    .replace(/\b(divided by|over)\b/g,'/').replace(/\bto the power of\b|\^/g,'**').replace(/\bsquared\b/g,'**2').replace(/\bcubed\b/g,'**3')
+    .replace(/,/g,'').replace(/[?=]/g,'').replace(/\bwhat is\b|\bequals?\b|\bcalculate\b|\bcompute\b|\bsolve\b/g,'');
+  e = e.replace(/square root of\s*(\d+(?:\.\d+)?)/g,'Math.sqrt($1)');
+  if(!/^[\d\s+\-*/().%a-z]*$/.test(e) || /[a-z]/.test(e.replace(/Math\.sqrt/gi,''))) return null;
+  if(!/\d/.test(e)) return null;
+  try{ const v = Function('"use strict";return ('+e.replace(/math\.sqrt/g,'Math.sqrt')+')')(); if(typeof v!=='number' || !isFinite(v)) return null; return Math.round(v*1e10)/1e10; }catch{ return null; }
+}
+
+async function sysStatus(){
+  const parts = [navigator.onLine ? 'Network connection is online.' : 'You appear to be offline.'];
+  try{ const b = await navigator.getBattery(); parts.push(`Battery is at ${Math.round(b.level*100)} percent${b.charging?' and charging':''}.`); }catch{}
+  if(navigator.hardwareConcurrency) parts.push(`${navigator.hardwareConcurrency} logical processor cores available.`);
+  if(navigator.deviceMemory) parts.push(`Roughly ${navigator.deviceMemory} gigabytes of memory.`);
+  parts.push(llmOk ? `Language model ${cfg.model||'unknown'} is online.` : 'My language model is offline; basic skills still work.');
+  return parts.join(' ');
+}
+
+const JOKES = ["I would tell you a UDP joke, but you might not get it.","There are ten kinds of people: those who understand binary and those who don't.","A SQL query walks into a bar, sees two tables and asks: may I join you?","I'd tell you a joke about infinite loops, but you've heard it before.","Why do programmers prefer dark mode? Because light attracts bugs."];
+const pick = a => a[Math.floor(Math.random()*a.length)];
+
+const skills = [
+  { re:/^(stop|be quiet|quiet|silence|shut up|cancel)\b/i, fn: () => { stopSpeaking(); return ''; } },
+  { re:/\b(what('s| is)? the )?time\b(?!r)/i, test:t=>/\b(what|tell|current|time is it|got the time)\b/i.test(t) && !/timer|remind/i.test(t), fn: () => `It is ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}, ${cfg.name}.` },
+  { re:/\b(date|day|today)\b/i, test:t=>/\b(what('s| is)?|tell me).*(date|day)\b/i.test(t) && !/weather/i.test(t), fn: () => `Today is ${new Date().toLocaleDateString([], {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
+  { re:/(?:remind me|reminder)\s+in\s+(\d+(?:\.\d+)?|an?|one|two|three|four|five|ten|fifteen|twenty|thirty|half an?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\s*(?:to|that|about)?\s*(.*)/i, fn: m => { const n = num(m[1].replace(/half an?/i,'half')); const ms = n*UNIT_MS(m[2].toLowerCase()); addTimer(ms, m[3].trim()||'Reminder'); return `Very well. I will remind you in ${fmtDur(ms)}.`; } },
+  { re:/(?:timer|countdown)\s*(?:for|of)?\s*(\d+(?:\.\d+)?|an?|one|two|three|four|five|ten|fifteen|twenty|thirty|forty|sixty|half an?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)/i, fn: m => { const n = num(m[1].replace(/half an?/i,'half')); const ms = n*UNIT_MS(m[2].toLowerCase()); addTimer(ms,''); return `Timer set for ${fmtDur(ms)}.`; } },
+  { re:/^(?:cancel|clear|stop) (?:all )?(?:the )?timers?/i, fn: () => { timers.forEach(t=>clearTimeout(t.h)); timers=[]; renderTimers(); return 'All timers cancelled.'; } },
+  { re:/^(?:take a note|note that|note|remember that|remember|jot down)\s*:?\s+(.+)/i, fn: m => { notes.push(m[1].trim()); store.set('notes',notes); renderNotes(); return 'Noted.'; } },
+  { re:/^(?:show|read|list|what are)(?: me)?(?: my)? notes/i, fn: () => notes.length ? 'Your notes: '+notes.map((n,i)=>`${i+1}. ${n}`).join(' ') : 'You have no notes.' },
+  { re:/^(?:clear|delete|erase) (?:all )?(?:my )?notes/i, fn: () => { notes=[]; store.set('notes',notes); renderNotes(); return 'All notes deleted.'; } },
+  { re:/weather(?:\s+(?:in|for|at))?\s*(.*)$|temperature(?:\s+in)?\s*(.*)$|\bis it (?:raining|cold|hot)\b/i, fn: async m => {
+      const place = ((m[1]||m[2]||'')+'').replace(/[?.]/g,'').replace(/^(today|now|like)\b.*/i,'').trim();
+      try{ const w = await fetchWeather(place); return `${w.loc.name==='your location'?'Currently':'In '+w.loc.name}, it is ${w.text}, feels like ${w.feels}°C. Today's high is ${w.hi}, low ${w.lo}, with a ${w.rain??0} percent chance of rain.`; }
+      catch(e){ return e.message && e.message.startsWith('Could not') ? e.message : `I could not get the weather. Try “weather in <city>”.`; } } },
+  { re:/^(?:open|launch|go to)\s+(.+)$/i, fn: m => {
+      const k = m[1].toLowerCase().replace(/[.!?]/g,'').replace(/\.com$/,'').trim();
+      let u = SITES[k] || (/^[\w-]+(\.[\w-]+)+$/.test(k) ? 'https://'+k : null);
+      if(!u) return null;
+      return openUrl(u) ? `Opening ${k}.` : `Your browser blocked the pop-up. Allow pop-ups for this page and ask again.`; } },
+  { re:/^(?:search(?: the web)?(?: for)?|google|look up|look for)\s+(.+)$/i, fn: m => openUrl('https://www.google.com/search?q='+encodeURIComponent(m[1])) ? `Searching for ${m[1]}.` : 'Your browser blocked the pop-up. Allow pop-ups for this page.' },
+  { re:/^(?:play|youtube)\s+(.+)$/i, fn: m => openUrl('https://www.youtube.com/results?search_query='+encodeURIComponent(m[1])) ? `Finding ${m[1]} on YouTube.` : 'Your browser blocked the pop-up.' },
+  { re:/^(?:who (?:is|was)|what (?:is|was)(?: a| an)?|tell me about|wiki(?:pedia)?)\s+(?!the time|the date|today|your name)(.+?)\??$/i, test:t=>!/\d\s*[+\-*/x]\s*\d/.test(t) && t.split(/\s+/).length<=7, fn: async m => { try{ return await wiki(m[1]); }catch{ return null; } }, soft:true },
+  { re:/(?:system|status|diagnostic|battery)/i, test:t=>/^(system|status|diagnostics?|run diagnostics|battery|how are you doing|system status)/i.test(t.trim()), fn: sysStatus },
+  { re:/joke/i, fn: () => pick(JOKES) },
+  { re:/^(?:clear|reset)(?: the)?(?: chat| conversation| screen)?$/i, fn: () => { history = []; log.innerHTML=''; return 'Conversation cleared.'; } },
+  { re:/\b(who are you|your name|introduce yourself)\b/i, fn: () => `I am J.A.R.V.I.S., your personal assistant. I run locally in your browser and ${llmOk?'think using '+cfg.model:'my language model is currently offline'}.` },
+  { re:/^(?:hello|hi|hey|good (?:morning|afternoon|evening))\b[\s,.!]*(?:jarvis)?[\s.!]*$/i, fn: () => { const h = new Date().getHours(); return `${h<12?'Good morning':h<18?'Good afternoon':'Good evening'}, ${cfg.name}. How may I assist?`; } },
+  { re:/^(?:thanks|thank you)/i, fn: () => `Always a pleasure, ${cfg.name}.` },
+  { re:/\d/, test:t=>/[\d\)]\s*(?:[+\-*/^x%]|plus|minus|times|divided|percent|squared|cubed)|square root|percent of|^calculate|^what is \d/i.test(t), fn: m => { const r = calc(m.input); return r===null ? null : `The answer is ${r}.`; } }
+];
+
+async function runSkills(text){
+  for(const s of skills){
+    if(s.test && !s.test(text)) continue;
+    const m = text.match(s.re); if(!m) continue;
+    m.input = text;
+    const out = await s.fn(m);
+    if(out === '') return {handled:true, text:''};
+    if(out) return {handled:true, text:out};
+  }
+  return {handled:false};
+}
+
+/* ---------- LLM (Ollama) ---------- */
+let llmOk = false, history = [];
+async function checkLLM(){
+  const sel=$('#model'); sel.style.display = cfg.brain==='ollama' ? '' : 'none';
+  if(cfg.brain==='webllm'){ llmOk=!!navigator.gpu; $('#llmStatus').textContent = llmOk ? (webEngine?'on-device brain ready':'on-device (loads on first ask)') : 'no WebGPU in this browser'; $('#dot').className='dot'+(llmOk?' ok':''); cfg.model=cfg.wModel; return; }
+  if(cfg.brain==='cloud'){ llmOk=!!cfg.cKey; $('#llmStatus').textContent = llmOk?'cloud brain':'add API key in ⚙'; $('#dot').className='dot'+(llmOk?' ok':''); cfg.model=cfg.cModel; return; }
+  try{
+    const r = await fetch(cfg.url.replace(/\/$/,'')+'/api/tags'); const j = await r.json();
+    const names = (j.models||[]).map(m=>m.name);
+    sel.innerHTML = '';
+    names.forEach(n => { const o = document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+    if(!names.length){ llmOk=false; $('#llmStatus').textContent='no models installed'; $('#dot').className='dot'; return; }
+    if(!names.includes(cfg.model)) cfg.model = names[0];
+    sel.value = cfg.model; saveCfg();
+    llmOk = true; $('#llmStatus').textContent = 'brain online'; $('#dot').className='dot ok';
+  }catch{
+    llmOk = false; $('#llmStatus').textContent = 'brain offline'; $('#dot').className='dot'; sel.innerHTML = '<option>—</option>';
+  }
+}
+let webEngine=null;
+async function loadWeb(){
+  if(webEngine) return webEngine;
+  if(!navigator.gpu) throw new Error('This browser has no WebGPU. Use Chrome on a recent Android phone, or pick the cloud brain.');
+  const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+  webEngine = await webllm.CreateMLCEngine(cfg.wModel,{initProgressCallback:p=>{ $('#llmStatus').textContent='downloading model '+Math.round((p.progress||0)*100)+'%'; }});
+  $('#llmStatus').textContent='on-device brain ready';
+  return webEngine;
+}
+async function streamBrain(messages, onPiece){
+  if(cfg.brain==='webllm'){
+    const eng = await loadWeb();
+    const it = await eng.chat.completions.create({messages, stream:true, temperature:.7});
+    for await (const c of it) onPiece(c.choices[0]?.delta?.content||'');
+    return;
+  }
+  if(cfg.brain==='cloud'){
+    const r = await fetch(cfg.cUrl.replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.cKey},body:JSON.stringify({model:cfg.cModel,messages,stream:true})});
+    if(!r.ok) throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,200));
+    const rd=r.body.getReader(), dec=new TextDecoder(); let tail='';
+    while(true){ const {done,value}=await rd.read(); if(done)break; tail+=dec.decode(value,{stream:true}); const ls=tail.split('\n'); tail=ls.pop();
+      for(const l of ls){ if(!l.startsWith('data:')) continue; const d=l.slice(5).trim(); if(d==='[DONE]') continue; try{ onPiece(JSON.parse(d).choices[0]?.delta?.content||''); }catch{} } }
+    return;
+  }
+  const r = await fetch(cfg.url.replace(/\/$/,'')+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:cfg.model,stream:true,messages})});
+  if(!r.ok) throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,200));
+  const rd=r.body.getReader(), dec=new TextDecoder(); let tail='';
+  while(true){ const {done,value}=await rd.read(); if(done)break; tail+=dec.decode(value,{stream:true}); const ls=tail.split('\n'); tail=ls.pop();
+    for(const l of ls){ if(!l.trim()) continue; try{ onPiece(JSON.parse(l).message?.content||''); }catch{} } }
+}
+function systemPrompt(){
+  const now = new Date().toLocaleString([], {dateStyle:'full', timeStyle:'short'});
+  const noteTxt = notes.length ? ' The user\'s saved notes: '+notes.join('; ')+'.' : '';
+  return `You are J.A.R.V.I.S., a refined, witty, highly capable British AI butler-assistant. Address the user as "${cfg.name}". Your replies are spoken aloud, so use plain sentences: no markdown, no bullet lists, no emojis. Be concise (usually one to three sentences) unless the user asks for detail. Be accurate; if you do not know, say so. Current date and time: ${now}.${noteTxt}`;
+}
+async function askLLM(text){
+  history.push({role:'user', content:text}); history = history.slice(-16);
+  const bubble = addMsg(cfg.brain==='webllm'&&!webEngine?'Loading on-device model, first time only…':'…','j');
+  let full = '', buf = '';
+  try{
+    await streamBrain([{role:'system',content:systemPrompt()}, ...history], piece => {
+      if(!piece) return;
+      full += piece; buf += piece; bubble.textContent = full; log.scrollTop = log.scrollHeight;
+      const m = buf.match(/^([\s\S]*?[.!?])(\s|$)([\s\S]*)$/);
+      if(m && m[1].length>25 && /\s/.test(buf.slice(m[1].length))){ speak(m[1]); buf = m[3]; }
+    });
+    if(buf.trim()) speak(buf);
+    if(!full.trim()) bubble.textContent = '(no response)';
+    history.push({role:'assistant', content:full});
+  }catch(e){
+    bubble.remove(); history.pop(); console.error(e);
+    reply(`I could not reach my brain, ${cfg.name}. ${e.message||''} You can change the brain in settings. My built-in skills still work.`);
+  }
+}
+
+/* ---------- Main pipeline ---------- */
+async function process(text){
+  text = text.trim(); if(!text || busy) return;
+  addMsg(text,'u'); stopSpeaking(); busy = true; setState('thinking');
+  try{
+    const r = await runSkills(text);
+    if(r.handled){ if(r.text) reply(r.text); }
+    else if(llmOk) await askLLM(text);
+    else { await checkLLM(); if(llmOk) await askLLM(text); else reply(`That is outside my built-in skills, ${cfg.name}, and my language model is offline. Open settings and pick an AI brain.`); }
+  }catch(e){ console.error(e); reply(`Something went wrong, ${cfg.name}: ${e.message||e}`); }
+  busy = false; if(!pendingSpeech) setState(micOn?'listening':'idle');
+  if(Notification && Notification.permission==='default') Notification.requestPermission().catch(()=>{});
+}
+
+/* ---------- Wire up ---------- */
+$('#send').onclick = () => { const v = $('#in').value; $('#in').value=''; process(v); };
+$('#in').addEventListener('keydown', e => { if(e.key==='Enter'){ $('#send').click(); } });
+$('#mic').onclick = toggleMic;
+$('#model').onchange = e => { cfg.model = e.target.value; saveCfg(); history = []; };
+$('#btnSet').onclick = () => {
+  $('#sName').value = cfg.name; $('#sUrl').value = cfg.url; $('#sWake').value = cfg.wake; $('#sVoice').value = cfg.voice;
+  $('#sBrain').value=cfg.brain; $('#sCUrl').value=cfg.cUrl; $('#sCKey').value=cfg.cKey; $('#sCModel').value=cfg.cModel; $('#sWModel').value=cfg.wModel; showBrain(); $('#sSpeak').checked = cfg.speak; $('#sWakeOn').checked = cfg.wakeOn; $('#dlg').showModal();
+};
+function showBrain(){ const b=$('#sBrain').value; $('#bOllama').style.display=b==='ollama'?'':'none'; $('#bCloud').style.display=b==='cloud'?'':'none'; $('#bWeb').style.display=b==='webllm'?'':'none'; }
+$('#sBrain').onchange=showBrain;
+$('#sClose').onclick = () => $('#dlg').close();
+$('#sSave').onclick = () => {
+  cfg.name = $('#sName').value.trim()||'sir'; cfg.url = $('#sUrl').value.trim()||'http://localhost:11434';
+  cfg.wake = $('#sWake').value.trim().toLowerCase()||'jarvis'; cfg.voice = $('#sVoice').value;
+  cfg.brain=$('#sBrain').value; cfg.cUrl=$('#sCUrl').value.trim()||cfg.cUrl; cfg.cKey=$('#sCKey').value.trim(); cfg.cModel=$('#sCModel').value.trim()||cfg.cModel; if($('#sWModel').value!==cfg.wModel){ cfg.wModel=$('#sWModel').value; webEngine=null; } cfg.speak = $('#sSpeak').checked; cfg.wakeOn = $('#sWakeOn').checked; saveCfg(); $('#dlg').close(); checkLLM();
+  if(!cfg.speak) stopSpeaking();
+};
+document.addEventListener('keydown', e => { if(e.key==='Escape') stopSpeaking(); });
+
+setInterval(() => {
+  const n = new Date();
+  $('#clock').textContent = n.toLocaleTimeString([], {hour12:false});
+  $('#date').textContent = n.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  document.querySelectorAll('#timers [data-end]').forEach(el => { el.textContent = fmtDur(Math.max(0, +el.dataset.end - Date.now())); });
+}, 1000);
+
+async function renderSys(){
+  const el = $('#sys'); el.innerHTML='';
+  const rows = [['Network', navigator.onLine?'Online':'Offline'],['Cores', navigator.hardwareConcurrency||'?']];
+  try{ const b = await navigator.getBattery(); rows.push(['Battery', Math.round(b.level*100)+'%'+(b.charging?' ⚡':'')]); }catch{}
+  rows.forEach(([a,b])=>{ const r=document.createElement('div'); r.className='row'; const x=document.createElement('span'); x.textContent=a; const y=document.createElement('span'); y.textContent=b; r.append(x,y); el.appendChild(r); });
+}
+renderSys(); setInterval(renderSys, 30000);
+renderNotes(); wxWidget(); checkLLM(); setInterval(checkLLM, 60000);
+addMsg(`Good ${new Date().getHours()<12?'morning':new Date().getHours()<18?'afternoon':'evening'}, ${cfg.name}. All systems nominal. Type below, or press the microphone and say “${cfg.wake}”.`, 'j');
+</script>
+</body>
+</html>
